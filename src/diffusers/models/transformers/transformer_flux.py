@@ -409,6 +409,8 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
         controlnet_single_block_samples=None,
         return_dict: bool = True,
         controlnet_blocks_repeat: bool = False,
+        pulid_id_emb: Optional[torch.Tensor]=None,
+        pulid_id_weight: Optional[float]=None,
     ) -> Union[torch.FloatTensor, Transformer2DModelOutput]:
         """
         The [`FluxTransformer2DModel`] forward method.
@@ -481,7 +483,7 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
 
         ids = torch.cat((txt_ids, img_ids), dim=0)
         image_rotary_emb = self.pos_embed(ids)
-
+        pulid_indx = 0
         for index_block, block in enumerate(self.transformer_blocks):
             if torch.is_grad_enabled() and self.gradient_checkpointing:
 
@@ -512,6 +514,11 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
                     image_rotary_emb=image_rotary_emb,
                     joint_attention_kwargs=joint_attention_kwargs,
                 )
+            #pulid
+            if index_block % self.pulid_double_interval == 0 and pulid_id_emb is not None:
+                hidden_states = hidden_states + pulid_id_weight * self.pulid_adapter[pulid_indx](hidden_states=hidden_states, 
+                    encoder_hidden_states=pulid_id_emb)
+                pulid_indx += 1
 
             # controlnet residual
             if controlnet_block_samples is not None:
@@ -554,6 +561,15 @@ class FluxTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOrig
                     image_rotary_emb=image_rotary_emb,
                     joint_attention_kwargs=joint_attention_kwargs,
                 )
+            
+            #pulid
+            if index_block % self.pulid_single_interval == 0 and pulid_id_emb is not None:
+                encoder_hidden_states, hidden_states = hidden_states[:, :encoder_hidden_states.shape[1], ...],\
+                    hidden_states[:, encoder_hidden_states.shape[1]:, ...]
+                hidden_states = hidden_states + pulid_id_weight * self.pulid_adapter[pulid_indx](hidden_states=hidden_states, 
+                    encoder_hidden_states=pulid_id_emb)
+                hidden_states = torch.cat((encoder_hidden_states, hidden_states), 1)
+                pulid_indx += 1
 
             # controlnet residual
             if controlnet_single_block_samples is not None:

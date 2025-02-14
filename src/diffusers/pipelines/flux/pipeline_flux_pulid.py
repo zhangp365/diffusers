@@ -827,7 +827,8 @@ class FluxCFGPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixi
                     joint_attention_kwargs=self.joint_attention_kwargs,
                     return_dict=False,
                 )[0]
-
+                if XLA_AVAILABLE:
+                    xm.mark_step()
                 if do_true_cfg:
                     neg_noise_pred, noise_pred = noise_pred.chunk(2)
                     noise_pred = neg_noise_pred + true_cfg * (noise_pred - neg_noise_pred)

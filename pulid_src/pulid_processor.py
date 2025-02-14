@@ -9,7 +9,7 @@ import torch.nn as nn
 from facexlib.parsing import init_parsing_model
 from facexlib.utils.face_restoration_helper import FaceRestoreHelper
 from huggingface_hub import hf_hub_download, snapshot_download
-from insightface.app import FaceAnalysis
+
 from safetensors.torch import load_file
 from torchvision.transforms import InterpolationMode
 from torchvision.transforms.functional import normalize, resize
@@ -111,6 +111,7 @@ def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
 
 class PulidProcessor(nn.Module):
     def __init__(self, dit, device, weight_dtype=torch.bfloat16, onnx_provider='gpu', *args, **kwargs):
+        from insightface.app import FaceAnalysis
         super().__init__()
         self.device = device
         self.weight_dtype = weight_dtype

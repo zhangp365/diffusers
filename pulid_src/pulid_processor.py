@@ -109,7 +109,7 @@ def tensor2img(tensor, rgb2bgr=True, out_type=np.uint8, min_max=(0, 1)):
     return result
 
 
-class PulidProccesor(nn.Module):
+class PulidProcessor(nn.Module):
     def __init__(self, dit, device, weight_dtype=torch.bfloat16, onnx_provider='gpu', *args, **kwargs):
         super().__init__()
         self.device = device

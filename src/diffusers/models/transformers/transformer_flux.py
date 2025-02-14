@@ -540,6 +540,7 @@ class FluxTransformer2DModel(
                 )
             #pulid
             if index_block % self.pulid_double_interval == 0 and pulid_id_emb is not None:
+                print(f"double pulid hidden_states shape: {hidden_states.shape},encoder_hidden_states shape: {pulid_id_emb.shape}")
                 hidden_states = hidden_states + pulid_id_weight * self.pulid_adapter[pulid_indx](hidden_states=hidden_states, 
                     encoder_hidden_states=pulid_id_emb)
                 pulid_indx += 1
@@ -578,6 +579,7 @@ class FluxTransformer2DModel(
             if index_block % self.pulid_single_interval == 0 and pulid_id_emb is not None:
                 encoder_hidden_states, hidden_states = hidden_states[:, :encoder_hidden_states.shape[1], ...],\
                     hidden_states[:, encoder_hidden_states.shape[1]:, ...]
+                print(f"single pulid hidden_states shape: {hidden_states.shape},encoder_hidden_states shape: {pulid_id_emb.shape}")
                 hidden_states = hidden_states + pulid_id_weight * self.pulid_adapter[pulid_indx](hidden_states=hidden_states, 
                     encoder_hidden_states=pulid_id_emb)
                 hidden_states = torch.cat((encoder_hidden_states, hidden_states), 1)

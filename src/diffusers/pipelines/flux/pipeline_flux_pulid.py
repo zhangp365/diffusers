@@ -329,7 +329,7 @@ class FluxCFGPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixi
                 scale_lora_layers(self.text_encoder_2, lora_scale)
 
         prompt = [prompt] if isinstance(prompt, str) else prompt
-        batch_size = len(prompt)
+        batch_size = len(prompt) if prompt is not None else 1
 
         if do_true_cfg and negative_prompt is not None:
             negative_prompt = [negative_prompt] if isinstance(negative_prompt, str) else negative_prompt

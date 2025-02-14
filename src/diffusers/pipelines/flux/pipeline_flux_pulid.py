@@ -200,12 +200,15 @@ class FluxCFGPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixi
         )
         self.default_sample_size = 64
 
-    def load_pulid_adapter(self, pretrain_path=None, version='v0.9.1'):
+    def load_pulid_adapter(self, pretrain_path=None, version='v0.9.1',xla_flash_attention=False):
 
         double_interval = 2
         single_interval = 4
 
         self.transformer.pulid_adapter = PulidProcessor.init_pulid_adapter(self.transformer.device, self.transformer.dtype, double_interval, single_interval)
+        if xla_flash_attention:
+            for attn in self.transformer.pulid_adapter:
+                attn.set_use_xla_flash_attention(use_xla_flash_attention=True, partition_spec=("data", None, None, None), is_flux=True)
 
         self.transformer.pulid_double_interval = double_interval
         self.transformer.pulid_single_interval = single_interval

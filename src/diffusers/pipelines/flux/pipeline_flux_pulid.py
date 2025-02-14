@@ -37,6 +37,7 @@ from ...utils import (
 from ...utils.torch_utils import randn_tensor
 from ..pipeline_utils import DiffusionPipeline
 from .pipeline_output import FluxPipelineOutput
+from pulid_src.pulid_processor import PulidProcessor
 
 if is_torch_xla_available():
     import torch_xla.core.xla_model as xm
@@ -198,6 +199,20 @@ class FluxCFGPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixi
             self.tokenizer.model_max_length if hasattr(self, "tokenizer") and self.tokenizer is not None else 77
         )
         self.default_sample_size = 64
+
+    def load_pulid_adapter(self, pretrain_path=None, version='v0.9.1'):
+
+        double_interval = 2
+        single_interval = 4
+
+        self.pulid_processor = PulidProcessor.init_pulid_adapter(self.transformer.device, self.transformer.dtype, double_interval, single_interval)
+
+        self.transformer.pulid_double_interval = double_interval
+        self.transformer.pulid_single_interval = single_interval
+        state_dict = PulidProcessor.load_pulid_state_dict(pretrain_path, version)
+        self.pulid_processor.load_state_dict(state_dict["pulid_ca"], strict=True)
+
+        del state_dict
 
     def _get_t5_prompt_embeds(
         self,

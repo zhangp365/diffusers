@@ -121,26 +121,7 @@ class PulidProccesor(nn.Module):
         double_interval = 2
         single_interval = 4
 
-        num_ca = 19 // double_interval + 38 // single_interval
-        if 19 % double_interval != 0:
-            num_ca += 1
-        if 38 % single_interval != 0:
-            num_ca += 1
-
-        dim=3072
-        dim_head=128
-        heads=16
-        kv_dim=2048
-
-        self.pulid_ca = nn.ModuleList([Attention(
-            query_dim=dim,
-            cross_attention_dim=kv_dim,
-            heads=heads,
-            dim_head=dim_head,
-            out_bias=False,
-            cross_attention_norm="layer_norm",
-            norm_num_groups=1,
-        ) for _ in range(num_ca)]).to(device=device, dtype=weight_dtype)
+        self.pulid_ca = self.init_pulid_adapter(device, weight_dtype, double_interval, single_interval)
 
         dit.pulid_adapter = self.pulid_ca
         dit.pulid_double_interval = double_interval
@@ -186,7 +167,39 @@ class PulidProccesor(nn.Module):
         # other configs
         self.debug_img_list = []
 
+    @classmethod
+    def init_pulid_adapter(cls, device, weight_dtype, double_interval, single_interval):
+        num_ca = 19 // double_interval + 38 // single_interval
+        if 19 % double_interval != 0:
+            num_ca += 1
+        if 38 % single_interval != 0:
+            num_ca += 1
+
+        dim=3072
+        dim_head=128
+        heads=16
+        kv_dim=2048
+
+        return nn.ModuleList([Attention(
+            query_dim=dim,
+            cross_attention_dim=kv_dim,
+            heads=heads,
+            dim_head=dim_head,
+            out_bias=False,
+            cross_attention_norm="layer_norm",
+            norm_num_groups=1,
+        ) for _ in range(num_ca)]).to(device=device, dtype=weight_dtype)
+
     def load_pretrain(self, pretrain_path=None, version='v0.9.1'):
+        new_state_dict = self.load_pulid_state_dict(pretrain_path, version)
+        for module in new_state_dict:
+            print(f'loading from {module}')
+            getattr(self, module).load_state_dict(new_state_dict[module], strict=True)
+       
+        del new_state_dict
+
+    @classmethod
+    def load_pulid_state_dict(cls, pretrain_path=None, version='v0.9.1'):
         hf_hub_download('guozinan/PuLID', f'pulid_flux_{version}.safetensors', local_dir='models')
         ckpt_path = f'models/pulid_flux_{version}.safetensors'
         if pretrain_path is not None:
@@ -214,11 +227,8 @@ class PulidProccesor(nn.Module):
                 elif "to_out." in key:
                     key = key.replace("to_out.", "to_out.0.") 
                 new_state_dict["pulid_ca"][key] = data
-        for module in new_state_dict:
-            print(f'loading from {module}')
-            getattr(self, module).load_state_dict(new_state_dict[module], strict=True)
         del state_dict
-        del new_state_dict
+        return  new_state_dict
 
     def components_to_device(self, device):
         # everything but pulid_ca

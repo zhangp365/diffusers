@@ -205,12 +205,12 @@ class FluxCFGPipeline(DiffusionPipeline, FluxLoraLoaderMixin, FromSingleFileMixi
         double_interval = 2
         single_interval = 4
 
-        self.pulid_processor = PulidProcessor.init_pulid_adapter(self.transformer.device, self.transformer.dtype, double_interval, single_interval)
+        self.transformer.pulid_adapter = PulidProcessor.init_pulid_adapter(self.transformer.device, self.transformer.dtype, double_interval, single_interval)
 
         self.transformer.pulid_double_interval = double_interval
         self.transformer.pulid_single_interval = single_interval
         state_dict = PulidProcessor.load_pulid_state_dict(pretrain_path, version)
-        self.pulid_processor.load_state_dict(state_dict["pulid_ca"], strict=True)
+        self.transformer.pulid_adapter.load_state_dict(state_dict["pulid_ca"], strict=True)
 
         del state_dict
 

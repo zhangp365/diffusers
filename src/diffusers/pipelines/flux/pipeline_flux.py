@@ -920,7 +920,8 @@ class FluxPipeline(
                     joint_attention_kwargs=self.joint_attention_kwargs,
                     return_dict=False,
                 )[0]
-
+                if XLA_AVAILABLE:
+                    xm.mark_step()
                 if do_true_cfg:
                     if negative_image_embeds is not None:
                         self._joint_attention_kwargs["ip_adapter_image_embeds"] = negative_image_embeds
@@ -936,7 +937,8 @@ class FluxPipeline(
                         return_dict=False,
                     )[0]
                     noise_pred = neg_noise_pred + true_cfg_scale * (noise_pred - neg_noise_pred)
-
+                    if XLA_AVAILABLE:
+                        xm.mark_step()
                 # compute the previous noisy sample x_t -> x_t-1
                 latents_dtype = latents.dtype
                 latents = self.scheduler.step(noise_pred, t, latents, return_dict=False)[0]

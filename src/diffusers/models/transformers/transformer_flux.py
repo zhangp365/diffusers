@@ -322,6 +322,9 @@ class FluxTransformer2DModel(
         self.proj_out = nn.Linear(self.inner_dim, patch_size * patch_size * self.out_channels, bias=True)
 
         self.gradient_checkpointing = False
+        self.pulid_double_interval = 4
+        self.pulid_single_interval = 2
+        self.pulid_adapter = None
 
     @property
     # Copied from diffusers.models.unets.unet_2d_condition.UNet2DConditionModel.attn_processors
